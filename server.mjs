@@ -30,12 +30,15 @@ export function makeServer() {
   return server;
 }
 
-export function makeApp({ publicUrl = process.env.PUBLIC_URL } = {}) {
+export function makeApp({ publicUrl = process.env.PUBLIC_URL, renderUrl = process.env.RENDER_EXTERNAL_URL } = {}) {
   const allowedHosts = new Set(['localhost', '127.0.0.1', '[::1]']);
   const allowedOrigins = new Set();
-  if (publicUrl) {
-    const u = new URL(publicUrl);
-    if (u.protocol !== 'https:' || u.pathname !== '/' || u.username || u.password) throw new Error('PUBLIC_URL must be an HTTPS origin without path or credentials.');
+  // Render supplies its hostname before the first deployment is healthy.
+  // Keep it allowed even when PUBLIC_URL selects a custom domain.
+  for (const [name, value] of [['PUBLIC_URL', publicUrl], ['RENDER_EXTERNAL_URL', renderUrl]]) {
+    if (!value) continue;
+    const u = new URL(value);
+    if (u.protocol !== 'https:' || u.pathname !== '/' || u.username || u.password || u.search || u.hash) throw new Error(`${name} must be an HTTPS origin without path or credentials.`);
     allowedHosts.add(u.hostname);
     allowedOrigins.add(u.origin);
   }
@@ -76,7 +79,8 @@ export function makeApp({ publicUrl = process.env.PUBLIC_URL } = {}) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const listener = makeApp().listen(Number(process.env.PORT || 3000), '0.0.0.0', () => console.log('Hyperion MCP listening'));
+  const port = Number(process.env.PORT || 3000);
+  const listener = makeApp().listen(port, '0.0.0.0', () => console.log(`Hyperion MCP listening on 0.0.0.0:${port}; health check: /health`));
   listener.requestTimeout = 15_000;
   listener.headersTimeout = 10_000;
   for (const signal of ['SIGTERM', 'SIGINT']) process.on(signal, () => listener.close());

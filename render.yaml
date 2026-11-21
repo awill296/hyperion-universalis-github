@@ -10,5 +10,3 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 24.22.3
-      - key: PUBLIC_URL
-        sync: false

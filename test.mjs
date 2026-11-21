@@ -6,6 +6,30 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import http from 'node:http';
 
+test('Render hostname works without PUBLIC_URL and alongside a custom domain', async () => {
+  for (const publicUrl of [undefined, 'https://market.example.com']) {
+    const listener = makeApp({ publicUrl, renderUrl: 'https://market-test.onrender.com' }).listen(0, '127.0.0.1');
+    await new Promise(resolve => listener.once('listening', resolve));
+    async function request(host, path) {
+      return new Promise((resolve, reject) => {
+        const req = http.request({ host: '127.0.0.1', port: listener.address().port, path, headers: { Host: host } }, res => {
+          let body = ''; res.on('data', chunk => body += chunk);
+          res.on('end', () => resolve({ status: res.statusCode, body }));
+        });
+        req.on('error', reject); req.end();
+      });
+    }
+    try {
+      assert.deepEqual(await request('market-test.onrender.com', '/health'), { status: 200, body: '{"status":"ok"}' });
+      assert.equal((await request('market-test.onrender.com', '/mcp')).status, 405);
+      assert.equal((await request('untrusted.example', '/health')).status, 403);
+      assert.equal((await request('untrusted.example', '/mcp')).status, 403);
+      if (publicUrl) assert.equal((await request('market.example.com', '/health')).status, 200);
+    } finally { await new Promise(resolve => listener.close(resolve)); }
+  }
+  assert.throws(() => makeApp({ publicUrl: 'https://market.example.com/mcp' }), /HTTPS origin/);
+});
+
 test('velocity uses units and full window, excludes outside-window sales, warns at cap', () => {
   const now = 2_000_000;
   const r = salesSummary([
