@@ -1,0 +1,9 @@
+{
+  "name": "hyperion-universalis-mcp",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24 <25" },
+  "scripts": { "start": "node server.mjs", "test": "node --test --test-isolation=none test.mjs", "smoke": "node smoke.mjs" },
+  "dependencies": { "@modelcontextprotocol/sdk": "1.32.2", "express": "5.3.0", "zod": "4.6.7" }
+}

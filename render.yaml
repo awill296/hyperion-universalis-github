@@ -1,0 +1,14 @@
+# Review and approve hosting before using this blueprint.
+services:
+  - type: web
+    name: hyperion-universalis-mcp
+    runtime: node
+    plan: free
+    buildCommand: npm ci --ignore-scripts
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 24.22.3
+      - key: PUBLIC_URL
+        sync: false
